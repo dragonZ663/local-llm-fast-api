@@ -61,7 +61,9 @@ class ChatService:
         provider = self.router.get_provider(payload.model)
         completion_id = f"chatcmpl-{uuid.uuid4().hex}"
         try:
+            # 用全局信号量 Semaphore(max_concurrent_requests) 控制并发
             async with self.sem:
+                # 每拿到一个 token，会包装成 ChatCompletionChunk（OpenAI 风格）并输出
                 async for token in provider.stream_chat_completion(
                     payload.model, payload.messages, payload.temperature, payload.max_tokens
                 ):
@@ -79,6 +81,7 @@ class ChatService:
                         request_id=get_request_id(),
                     )
                     yield f"data: {json.dumps(chunk.model_dump(), ensure_ascii=True)}\n\n"
+                # 上游结束后，服务层会主动再发两条
                 final_chunk = ChatCompletionChunk(
                     id=completion_id,
                     created=int(time.time()),
@@ -95,6 +98,7 @@ class ChatService:
                 yield f"data: {json.dumps(final_chunk.model_dump(), ensure_ascii=True)}\n\n"
                 yield "data: [DONE]\n\n"
         except UpstreamLLMError as exc:
+            # 捕获后不会抛 HTTPException，而是往流里发
             error_event = {
                 "error": {
                     "code": "upstream_error",

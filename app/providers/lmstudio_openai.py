@@ -87,10 +87,13 @@ class LMStudioOpenAIProvider(BaseLLMProvider):
             ) as client:
                 async with client.stream("POST", "/chat/completions", json=payload, headers=self._headers()) as resp:
                     resp.raise_for_status()
+                    # 逐行读取
                     async for line in resp.aiter_lines():
+                        # 只处理 data: ... 行
                         if not line or not line.startswith("data: "):
                             continue
                         data_payload = line[6:].strip()
+                        # data: [DONE] -> 结束
                         if data_payload == "[DONE]":
                             break
                         chunk = json.loads(data_payload)

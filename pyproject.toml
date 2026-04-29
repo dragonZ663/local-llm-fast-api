@@ -7,6 +7,7 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi",
     "httpx",
+    "openai",
     "prometheus-client",
     "pydantic>=2",
     "pydantic-settings",
