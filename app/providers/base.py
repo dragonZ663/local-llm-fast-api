@@ -10,7 +10,8 @@ class UpstreamLLMError(Exception):
         self.status_code = status_code
         self.details = details or {}
 
-
+# 继承 ABC 成为抽象类，强制实现 chat_completion 和 stream_chat_completion 方法
+# 并标记为异步方法
 class BaseLLMProvider(ABC):
     @abstractmethod
     async def chat_completion(

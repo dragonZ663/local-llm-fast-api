@@ -34,13 +34,18 @@ class LMStudioOpenAIProvider(BaseLLMProvider):
         }
         timeout = httpx.Timeout(self.settings.model_timeout_seconds)
         try:
+            # 自动管理客户端生命周期（自动关闭连接）
             async with httpx.AsyncClient(
                 base_url=self.settings.lmstudio_base_url,
                 timeout=timeout,
-                trust_env=False,
+                trust_env=False, # 不读取环境变量中的代理配置（避免使用系统代理）
             ) as client:
                 resp = await client.post("/chat/completions", json=payload, headers=self._headers())
+                # - 检查响应状态码
+                # - 如果状态码 >= 400（如 404、500），抛出 HTTPStatusError 异常
                 resp.raise_for_status()
+                # - 将响应体解析为 JSON 格式
+                # - 返回 Python 字典对象
                 data = resp.json()
         except httpx.HTTPStatusError as exc:
             upstream_status = exc.response.status_code
@@ -48,7 +53,7 @@ class LMStudioOpenAIProvider(BaseLLMProvider):
                 message=f"LM Studio upstream HTTP error: {upstream_status}",
                 status_code=upstream_status if 400 <= upstream_status < 600 else 502,
                 details={"upstream_status": str(upstream_status), "endpoint": "/chat/completions"},
-            ) from exc
+            ) from exc  # 将原始异常 exc 作为新异常的原因
         except httpx.HTTPError as exc:
             raise UpstreamLLMError(
                 message="LM Studio upstream request failed",

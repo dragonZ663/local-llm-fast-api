@@ -4,14 +4,13 @@ from pydantic import BaseModel, Field
 
 
 class ChatMessage(BaseModel):
-    role: Literal["system", "user", "assistant", "tool"]
-    content: str
-
+    role: Literal["system", "user", "assistant", "tool"]  # 枚举类型验证
+    content: str  # 字符串类型验证
 
 class ChatCompletionRequest(BaseModel):
     model: str
-    messages: List[ChatMessage]
-    temperature: float = 0.7
+    messages: List[ChatMessage]  # 嵌套模型
+    temperature: float = 0.7  # 默认值
     max_tokens: int = 512
     stream: bool = False
 
