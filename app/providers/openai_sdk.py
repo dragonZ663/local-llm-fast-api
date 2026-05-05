@@ -1,4 +1,3 @@
-from ast import alias
 from typing import AsyncIterator, Dict, List, cast
 
 from openai import APIConnectionError, APIError, APIStatusError, AsyncOpenAI
@@ -30,7 +29,9 @@ class OpenAISDKProvider(BaseLLMProvider):
         try:
             completion = await self.client.chat.completions.create(
                 model=model,
-                messages=cast(List[ChatCompletionMessageParam], [m.model_dump() for m in messages]),
+                messages=cast(
+                    List[ChatCompletionMessageParam], [m.model_dump() for m in messages]
+                ),
                 temperature=temperature,
                 max_tokens=max_tokens,
                 stream=False,
@@ -40,7 +41,10 @@ class OpenAISDKProvider(BaseLLMProvider):
             raise UpstreamLLMError(
                 message=f"OpenAI upstream HTTP error: {upstream_status}",
                 status_code=upstream_status if 400 <= upstream_status < 600 else 502,
-                details={"upstream_status": str(upstream_status), "endpoint": "/chat/completions"},
+                details={
+                    "upstream_status": str(upstream_status),
+                    "endpoint": "/chat/completions",
+                },
             ) from exc
         except (APIConnectionError, APIError) as exc:
             raise UpstreamLLMError(
@@ -53,9 +57,9 @@ class OpenAISDKProvider(BaseLLMProvider):
         usage = completion.usage
         return {
             "content": content,
-            "prompt_tokens": str(usage.prompt_tokens if usage else '0'),
-            "completion_tokens": str(usage.completion_tokens if usage else '0'),
-            "total_tokens": str(usage.total_tokens if usage else '0'),
+            "prompt_tokens": str(usage.prompt_tokens if usage else "0"),
+            "completion_tokens": str(usage.completion_tokens if usage else "0"),
+            "total_tokens": str(usage.total_tokens if usage else "0"),
         }
 
     async def stream_chat_completion(
@@ -69,7 +73,9 @@ class OpenAISDKProvider(BaseLLMProvider):
             print("OpenAISDKProvider: Starting stream_chat_completion")
             stream = await self.client.chat.completions.create(
                 model=model,
-                messages=cast(List[ChatCompletionMessageParam], [m.model_dump() for m in messages]),
+                messages=cast(
+                    List[ChatCompletionMessageParam], [m.model_dump() for m in messages]
+                ),
                 temperature=temperature,
                 max_tokens=max_tokens,
                 stream=True,
@@ -85,7 +91,10 @@ class OpenAISDKProvider(BaseLLMProvider):
             raise UpstreamLLMError(
                 message=f"OpenAI upstream HTTP error: {upstream_status}",
                 status_code=upstream_status if 400 <= upstream_status < 600 else 502,
-                details={"upstream_status": str(upstream_status), "endpoint": "/chat/completions"},
+                details={
+                    "upstream_status": str(upstream_status),
+                    "endpoint": "/chat/completions",
+                },
             ) from exc
         except (APIConnectionError, APIError) as exc:
             raise UpstreamLLMError(

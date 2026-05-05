@@ -5,8 +5,10 @@ description = "FastAPI wrapper for local LLM with OpenAI-compatible endpoints"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "black>=26.3.1",
     "fastapi",
     "httpx",
+    "isort>=8.0.1",
     "openai",
     "prometheus-client",
     "pydantic>=2",

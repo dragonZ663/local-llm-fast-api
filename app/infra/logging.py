@@ -7,12 +7,16 @@ from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import get_settings
-from app.infra.request_context import get_request_id, new_request_id, set_request_id
+from app.infra.request_context import (get_request_id, new_request_id,
+                                       set_request_id)
 
 
 def setup_logging() -> None:
     settings = get_settings()
-    logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO), format="%(message)s")
+    logging.basicConfig(
+        level=getattr(logging, settings.log_level.upper(), logging.INFO),
+        format="%(message)s",
+    )
 
 
 def log_event(event: str, **kwargs: Any) -> None:

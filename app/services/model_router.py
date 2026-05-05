@@ -1,8 +1,8 @@
+from app.config import get_settings
 from app.providers.base import BaseLLMProvider
 from app.providers.lmstudio_openai import LMStudioOpenAIProvider
 from app.providers.mock_local import MockLocalProvider
 from app.providers.openai_sdk import OpenAISDKProvider
-from app.config import get_settings
 
 
 class ModelRouter:
@@ -10,7 +10,9 @@ class ModelRouter:
         self.settings = get_settings()
         self.local_provider = MockLocalProvider()
         self.lmstudio_provider = LMStudioOpenAIProvider()
-        self.openai_provider = OpenAISDKProvider() if self.settings.llm_backend == "openai_sdk" else None
+        self.openai_provider = (
+            OpenAISDKProvider() if self.settings.llm_backend == "openai_sdk" else None
+        )
 
     def get_provider(self, model: str) -> BaseLLMProvider:
         if self.settings.llm_backend == "openai_sdk":

@@ -7,6 +7,7 @@ class ChatMessage(BaseModel):
     role: Literal["system", "user", "assistant", "tool"]  # 枚举类型验证
     content: str  # 字符串类型验证
 
+
 class ChatCompletionRequest(BaseModel):
     model: str
     messages: List[ChatMessage]  # 嵌套模型

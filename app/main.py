@@ -7,7 +7,8 @@ from fastapi.responses import JSONResponse
 from app.api.routes import router
 from app.config import get_settings
 from app.infra.logging import RequestContextMiddleware, setup_logging
-from app.infra.metrics import http_requests_total, render_metrics, request_latency_seconds
+from app.infra.metrics import (http_requests_total, render_metrics,
+                               request_latency_seconds)
 from app.infra.request_context import get_request_id
 from app.middleware.auth import APIKeyAuthMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
@@ -47,6 +48,8 @@ app.include_router(router)
 
 
 """ 监控中间件（自定义 @app.middleware("http")) """
+
+
 @app.middleware("http")
 async def metrics_middleware(request: Request, call_next):
     started = time.perf_counter()
@@ -65,12 +68,13 @@ async def metrics_middleware(request: Request, call_next):
     return response
 
 
-
 """ 统一异常处理 """
+
+
 @app.exception_handler(HTTPException)
 async def http_error_handler(request: Request, exc: HTTPException):
-    """ HTTPException 处理:
-    
+    """HTTPException 处理:
+
     处理 FastAPI/业务抛出的 HTTPException;
     返回统一结构 APIErrorResponse;
     request_id 优先从上下文取，拿不到就回退到请求头。
@@ -86,7 +90,7 @@ async def http_error_handler(request: Request, exc: HTTPException):
 
 @app.exception_handler(Exception)
 async def unhandled_error_handler(request: Request, exc: Exception):
-    """ 兜底 Exception 处理:
+    """兜底 Exception 处理:
 
     捕获未处理异常，统一返回 500;
     对外隐藏具体错误信息（仅固定文案），但在 details 中保留异常类型名。
@@ -102,9 +106,10 @@ async def unhandled_error_handler(request: Request, exc: Exception):
 
 @app.get("/metrics")
 async def metrics():
-    """ 暴露 Prometheus 风格监控数据（由 render_metrics() 生成）。
-    用于被 Prometheus 抓取。 """
+    """暴露 Prometheus 风格监控数据（由 render_metrics() 生成）。
+    用于被 Prometheus 抓取。"""
     return render_metrics()
+
 
 """ 整体请求流（简化版）
 请求进入 -> 经过中间件(CORS、限流、鉴权、上下文)(注册顺序与请求进入顺序相反)。

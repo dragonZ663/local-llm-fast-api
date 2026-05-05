@@ -1,9 +1,10 @@
+import httpx
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
-import httpx
 
 from app.config import get_settings
-from app.schemas import ChatCompletionRequest, HealthResponse, ModelCard, ModelListResponse, ReadinessResponse
+from app.schemas import (ChatCompletionRequest, HealthResponse, ModelCard,
+                         ModelListResponse, ReadinessResponse)
 from app.services.chat_service import ChatService
 
 router = APIRouter()
@@ -23,12 +24,18 @@ async def readyz() -> ReadinessResponse:
     if settings.lmstudio_api_key:
         headers["Authorization"] = f"Bearer {settings.lmstudio_api_key}"
     try:
-        async with httpx.AsyncClient(base_url=settings.lmstudio_base_url, timeout=5, trust_env=False) as client:
+        async with httpx.AsyncClient(
+            base_url=settings.lmstudio_base_url, timeout=5, trust_env=False
+        ) as client:
             resp = await client.get("/models", headers=headers)
             upstream_status = f"http_{resp.status_code}"
     except httpx.HTTPError:
         upstream_status = "unreachable"
-    status = "ready" if settings.model_list and upstream_status == "http_200" else "not_ready"
+    status = (
+        "ready"
+        if settings.model_list and upstream_status == "http_200"
+        else "not_ready"
+    )
     return ReadinessResponse(
         status=status,
         model_provider=settings.llm_backend,
@@ -40,7 +47,8 @@ async def readyz() -> ReadinessResponse:
 async def list_models() -> ModelListResponse:
     return ModelListResponse(
         data=[
-            ModelCard(id=m, metadata={"supports_stream": True, "supports_chat": True}) for m in get_settings().model_list
+            ModelCard(id=m, metadata={"supports_stream": True, "supports_chat": True})
+            for m in get_settings().model_list
         ]
     )
 
@@ -50,5 +58,8 @@ async def chat_completions(request: Request, payload: ChatCompletionRequest):
     if payload.model not in get_settings().model_list:
         raise HTTPException(status_code=404, detail=f"Unknown model: {payload.model}")
     if payload.stream:
-        return StreamingResponse(chat_service.stream_completion_sse(payload), media_type="text/event-stream")
+        # StreamingResponse: FastAPI 提供的一个 流式响应类 ，用于实现 服务器端流式传输 。
+        return StreamingResponse(
+            chat_service.stream_completion_sse(payload), media_type="text/event-stream"
+        )
     return await chat_service.create_completion(payload)

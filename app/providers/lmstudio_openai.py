@@ -38,9 +38,11 @@ class LMStudioOpenAIProvider(BaseLLMProvider):
             async with httpx.AsyncClient(
                 base_url=self.settings.lmstudio_base_url,
                 timeout=timeout,
-                trust_env=False, # 不读取环境变量中的代理配置（避免使用系统代理）
+                trust_env=False,  # 不读取环境变量中的代理配置（避免使用系统代理）
             ) as client:
-                resp = await client.post("/chat/completions", json=payload, headers=self._headers())
+                resp = await client.post(
+                    "/chat/completions", json=payload, headers=self._headers()
+                )
                 # - 检查响应状态码
                 # - 如果状态码 >= 400（如 404、500），抛出 HTTPStatusError 异常
                 resp.raise_for_status()
@@ -52,7 +54,10 @@ class LMStudioOpenAIProvider(BaseLLMProvider):
             raise UpstreamLLMError(
                 message=f"LM Studio upstream HTTP error: {upstream_status}",
                 status_code=upstream_status if 400 <= upstream_status < 600 else 502,
-                details={"upstream_status": str(upstream_status), "endpoint": "/chat/completions"},
+                details={
+                    "upstream_status": str(upstream_status),
+                    "endpoint": "/chat/completions",
+                },
             ) from exc  # 将原始异常 exc 作为新异常的原因
         except httpx.HTTPError as exc:
             raise UpstreamLLMError(
@@ -90,7 +95,9 @@ class LMStudioOpenAIProvider(BaseLLMProvider):
                 timeout=timeout,
                 trust_env=False,
             ) as client:
-                async with client.stream("POST", "/chat/completions", json=payload, headers=self._headers()) as resp:
+                async with client.stream(
+                    "POST", "/chat/completions", json=payload, headers=self._headers()
+                ) as resp:
                     resp.raise_for_status()
                     # 逐行读取
                     async for line in resp.aiter_lines():
@@ -114,7 +121,10 @@ class LMStudioOpenAIProvider(BaseLLMProvider):
             raise UpstreamLLMError(
                 message=f"LM Studio upstream HTTP error: {upstream_status}",
                 status_code=upstream_status if 400 <= upstream_status < 600 else 502,
-                details={"upstream_status": str(upstream_status), "endpoint": "/chat/completions"},
+                details={
+                    "upstream_status": str(upstream_status),
+                    "endpoint": "/chat/completions",
+                },
             ) from exc
         except httpx.HTTPError as exc:
             raise UpstreamLLMError(
