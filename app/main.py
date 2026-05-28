@@ -1,38 +1,52 @@
 import time
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.api.auth_routes import router as auth_router
 from app.api.routes import router
+from app.auth.database import init_database
 from app.config import get_settings
 from app.infra.logging import RequestContextMiddleware, setup_logging
 from app.infra.metrics import (http_requests_total, render_metrics,
                                request_latency_seconds)
 from app.infra.request_context import get_request_id
-from app.middleware.auth import APIKeyAuthMiddleware
+from app.middleware.auth import JWTAuthMiddleware
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.schemas import APIErrorResponse
 
 settings = get_settings()
 setup_logging()
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_database()
+    if settings.app_env != "dev" and settings.jwt_secret == "dev-change-me":
+        raise RuntimeError("Set a strong JWT_SECRET before running outside dev")
+    yield
+
+
 app = FastAPI(
     title=settings.app_name,
     docs_url="/docs" if settings.enable_docs else None,
     redoc_url="/redoc" if settings.enable_docs else None,
+    lifespan=lifespan,
 )
+
 
 """中间件链（请求进来后按顺序经过）"""
 
 # 一般用于请求上下文（比如 request_id）
 app.add_middleware(RequestContextMiddleware)
 
-# API Key 鉴权。
-app.add_middleware(APIKeyAuthMiddleware)
-
-# 限流。
+# 按用户限流（需在鉴权之后执行，见下方注册顺序）
 app.add_middleware(RateLimitMiddleware)
+
+# JWT 鉴权（登录/注册路径放行）
+app.add_middleware(JWTAuthMiddleware)
 
 # 跨域控制，来源列表来自配置 cors_origin_list，并暴露 x-request-id 给前端。
 app.add_middleware(
@@ -44,6 +58,7 @@ app.add_middleware(
 )
 
 # 路由注册
+app.include_router(auth_router)
 app.include_router(router)
 
 
@@ -131,13 +146,11 @@ async def metrics():
 你的注册顺序是：
 
 RequestContextMiddleware
-APIKeyAuthMiddleware
 RateLimitMiddleware
+JWTAuthMiddleware
 CORSMiddleware
 所以请求进入顺序会是（理论上）：
 
-CORSMiddleware -> RateLimit -> Auth -> RequestContext -> 路由
-
-你断点看到 RateLimit -> Auth -> RequestContext -> 路由，这完全合理，通常只是因为你没在 CORSMiddleware 里打断点（它是框架中间件，也可能很快放行，看起来像“没经过”）。
+CORSMiddleware -> JWTAuth -> RateLimit -> RequestContext -> 路由
 官方文档：https://fastapi.tiangolo.com/zh/tutorial/middleware/?h=%E4%B8%AD%E9%97%B4%E4%BB%B6#multiple-middleware-execution-order
 """

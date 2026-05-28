@@ -17,7 +17,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.url.path in {"/healthz", "/readyz", "/metrics"}:
             return await call_next(request)
         limit = get_settings().rate_limit_rpm
-        token = request.headers.get("authorization", "anonymous")
+        token = getattr(request.state, "user_id", None) or "anonymous"
         now = time.time()
         window = self.request_windows[token]
         while window and now - window[0] > 60:

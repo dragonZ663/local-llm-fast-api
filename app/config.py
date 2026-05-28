@@ -8,7 +8,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     # 从.env文件读取配置，编码设置为utf-8，且大小写不敏感
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", case_sensitive=False
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
     )
 
     # alias 表示对应的环境变量名
@@ -21,7 +24,9 @@ class Settings(BaseSettings):
     enable_docs: bool = Field(default=True, alias="ENABLE_DOCS")
 
     # 安全与跨域
-    api_keys: str = Field(default="dev-key-1", alias="API_KEYS")
+    jwt_secret: str = Field(default="dev-change-me", alias="JWT_SECRET")
+    jwt_expire_minutes: int = Field(default=60, alias="JWT_EXPIRE_MINUTES")
+    auth_database_path: str = Field(default="data/auth.db", alias="AUTH_DATABASE_PATH")
     cors_origins: str = Field(default="*", alias="CORS_ORIGINS")
 
     # 模型与后端
@@ -45,10 +50,6 @@ class Settings(BaseSettings):
     prometheus_enabled: bool = Field(default=True, alias="PROMETHEUS_ENABLED")
 
     # 三个派生属性，把逗号字符串转为列表
-    @property
-    def api_key_list(self) -> List[str]:
-        return [x.strip() for x in self.api_keys.split(",") if x.strip()]
-
     @property
     def cors_origin_list(self) -> List[str]:
         return [x.strip() for x in self.cors_origins.split(",") if x.strip()]
