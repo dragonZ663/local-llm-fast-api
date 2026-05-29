@@ -19,16 +19,17 @@ async def healthz() -> HealthResponse:
 @router.get("/readyz", response_model=ReadinessResponse)
 async def readyz() -> ReadinessResponse:
     settings = get_settings()
+    upstream = settings.upstream_http_config
     upstream_status = "unknown"
-    headers = {}
-    if settings.lmstudio_api_key:
-        headers["Authorization"] = f"Bearer {settings.lmstudio_api_key}"
+    models: list[str] = []
     try:
         async with httpx.AsyncClient(
-            base_url=settings.lmstudio_base_url, timeout=5, trust_env=False
+            base_url=upstream.base_url, timeout=5, trust_env=False
         ) as client:
-            resp = await client.get("/models", headers=headers)
+            resp = await client.get("/models", headers=upstream.headers)
             upstream_status = f"http_{resp.status_code}"
+            if resp.is_success:
+                models = [item["id"] for item in resp.json().get("data", [])]
     except httpx.HTTPError:
         upstream_status = "unreachable"
     status = (
@@ -36,10 +37,14 @@ async def readyz() -> ReadinessResponse:
         if settings.model_list and upstream_status == "http_200"
         else "not_ready"
     )
+
     return ReadinessResponse(
         status=status,
         model_provider=settings.llm_backend,
-        details={"models": settings.model_list, "upstream": upstream_status},
+        details={
+            "models": models if models else settings.model_list,
+            "upstream": upstream_status,
+        },
     )
 
 

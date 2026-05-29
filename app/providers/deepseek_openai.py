@@ -8,11 +8,11 @@ from app.providers.base import BaseLLMProvider, UpstreamLLMError
 from app.schemas import ChatMessage
 
 
-class OpenAISDKProvider(BaseLLMProvider):
+class DeepSeekOpenAIProvider(BaseLLMProvider):
     def __init__(self) -> None:
         self.settings = get_settings()
         if not self.settings.openai_api_key:
-            raise ValueError("OPENAI_API_KEY is required when LLM_BACKEND=openai_sdk")
+            raise ValueError("OPENAI_API_KEY is required when LLM_BACKEND=deepseek_openai")
         self.client = AsyncOpenAI(
             api_key=self.settings.openai_api_key,
             base_url=self.settings.openai_base_url,
@@ -35,11 +35,12 @@ class OpenAISDKProvider(BaseLLMProvider):
                 temperature=temperature,
                 max_tokens=max_tokens,
                 stream=False,
+                extra_body={"thinking": {"type": "disabled"}}
             )
         except APIStatusError as exc:
             upstream_status = exc.status_code
             raise UpstreamLLMError(
-                message=f"OpenAI upstream HTTP error: {upstream_status}",
+                message=f"DeepSeek OpenAI upstream HTTP error: {upstream_status}",
                 status_code=upstream_status if 400 <= upstream_status < 600 else 502,
                 details={
                     "upstream_status": str(upstream_status),
@@ -48,7 +49,7 @@ class OpenAISDKProvider(BaseLLMProvider):
             ) from exc
         except (APIConnectionError, APIError) as exc:
             raise UpstreamLLMError(
-                message="OpenAI upstream request failed",
+                message="DeepSeek OpenAI upstream request failed",
                 status_code=502,
                 details={"endpoint": "/chat/completions", "error": type(exc).__name__},
             ) from exc
@@ -70,7 +71,7 @@ class OpenAISDKProvider(BaseLLMProvider):
         max_tokens: int,
     ) -> AsyncIterator[str]:
         try:
-            print("OpenAISDKProvider: Starting stream_chat_completion")
+            print("DeepSeek OpenAIProvider: Starting stream_chat_completion")
             stream = await self.client.chat.completions.create(
                 model=model,
                 messages=cast(
@@ -79,6 +80,7 @@ class OpenAISDKProvider(BaseLLMProvider):
                 temperature=temperature,
                 max_tokens=max_tokens,
                 stream=True,
+                extra_body={"thinking": {"type": "disabled"}}
             )
             async for chunk in stream:
                 if not chunk.choices:
@@ -89,7 +91,7 @@ class OpenAISDKProvider(BaseLLMProvider):
         except APIStatusError as exc:
             upstream_status = exc.status_code
             raise UpstreamLLMError(
-                message=f"OpenAI upstream HTTP error: {upstream_status}",
+                message=f"DeepSeek OpenAI upstream HTTP error: {upstream_status}",
                 status_code=upstream_status if 400 <= upstream_status < 600 else 502,
                 details={
                     "upstream_status": str(upstream_status),
@@ -98,7 +100,7 @@ class OpenAISDKProvider(BaseLLMProvider):
             ) from exc
         except (APIConnectionError, APIError) as exc:
             raise UpstreamLLMError(
-                message="OpenAI upstream request failed",
+                message="DeepSeek OpenAI upstream request failed",
                 status_code=502,
                 details={"endpoint": "/chat/completions", "error": type(exc).__name__},
             ) from exc

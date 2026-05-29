@@ -34,7 +34,7 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
                 code="http_401",
                 message="Missing or invalid bearer token",
             )
-
+        # 三个参数是 count（最多替换几次），即："Bearer " 只在字符串里 从左到右找，替换第 1 次，后面的不再动。
         token = auth_header.replace("Bearer ", "", 1).strip()
         if not token:
             return _error_response(

@@ -1,8 +1,17 @@
+from dataclasses import dataclass
 from functools import lru_cache
 from typing import List
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.enums import LLMBackend
+
+
+@dataclass(frozen=True)
+class UpstreamHttpConfig:
+    base_url: str
+    headers: dict[str, str]
 
 
 class Settings(BaseSettings):
@@ -32,7 +41,10 @@ class Settings(BaseSettings):
     # 模型与后端
     default_model: str = Field(default="qwen/qwen3.5-9b", alias="DEFAULT_MODEL")
     model_catalog: str = Field(default="qwen/qwen3.5-9b", alias="MODEL_CATALOG")
-    llm_backend: str = Field(default="lmstudio_openai", alias="LLM_BACKEND")
+    llm_backend: LLMBackend = Field(
+        default=LLMBackend.LMSTUDIO_OPENAI, alias="LLM_BACKEND"
+    )
+
     lmstudio_base_url: str = Field(
         default="http://127.0.0.1:1234/v1", alias="LMSTUDIO_BASE_URL"
     )
@@ -57,6 +69,28 @@ class Settings(BaseSettings):
     @property
     def model_list(self) -> List[str]:
         return [x.strip() for x in self.model_catalog.split(",") if x.strip()]
+
+    @property
+    def upstream_http_config(self) -> UpstreamHttpConfig:
+        match self.llm_backend:
+            case LLMBackend.LMSTUDIO_OPENAI:
+                headers: dict[str, str] = {}
+                if self.lmstudio_api_key:
+                    headers["Authorization"] = f"Bearer {self.lmstudio_api_key}"
+                return UpstreamHttpConfig(
+                    base_url=self.lmstudio_base_url,
+                    headers=headers,
+                )
+            case LLMBackend.DEEPSEEK_OPENAI:
+                headers = {}
+                if self.openai_api_key:
+                    headers["Authorization"] = f"Bearer {self.openai_api_key}"
+                return UpstreamHttpConfig(
+                    base_url=self.openai_base_url,
+                    headers=headers,
+                )
+            case _:
+                return UpstreamHttpConfig(base_url="", headers={})
 
 
 # 单例式获取
