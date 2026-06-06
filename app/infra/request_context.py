@@ -1,3 +1,11 @@
+"""
+contextvars = 全局变量 + 协程/线程级别的自动隔离
+它让你可以像用"全局变量"一样声明和访问，但实际取值时，每个协程/线程拿到的都是自己那份独立的拷贝。
+这在 FastAPI 这种异步框架里特别有用——避免把 request_id
+这种东西在所有函数签名里层层传递，同时又不会像 threading.local
+那样在同一个线程的多个协程之间互相串值。
+"""
+
 from contextvars import ContextVar
 from uuid import uuid4
 

@@ -63,8 +63,6 @@ app.include_router(router)
 
 
 """ 监控中间件（自定义 @app.middleware("http")) """
-
-
 @app.middleware("http")
 async def metrics_middleware(request: Request, call_next):
     started = time.perf_counter()
@@ -83,9 +81,14 @@ async def metrics_middleware(request: Request, call_next):
     return response
 
 
-""" 统一异常处理 """
-
-
+""" 
+统一异常处理：
+这里的顺序非常关键——HTTPException 是 Exception 的子类，FastAPI 会优先匹配更具体的处理器
+- 业务代码抛出的 HTTPException（如 404、504）→ 进入第一个
+  handler，返回结构化的错误响应,保留原始状态码
+- 其他意料之外的异常（如 ValueError、TypeError）→ 进入第二个兜底 handler，统一返回
+  500，对外隐藏内部细节
+"""
 @app.exception_handler(HTTPException)
 async def http_error_handler(request: Request, exc: HTTPException):
     """HTTPException 处理:
